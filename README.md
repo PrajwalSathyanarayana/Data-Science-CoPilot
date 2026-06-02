@@ -1,2 +1,2 @@
 # Data-Science-CoPilot
-AI powered data science copilot that can analyze uploaded dataset, perform EDA,  detect anomalies,  generate visualization, recommend ML approaches and produce business insights, 
+AI powered data science copilot that can analyze uploaded dataset, perform EDA,  detect anomalies,  generate visualization, recommend ML approaches and produce business insights.
