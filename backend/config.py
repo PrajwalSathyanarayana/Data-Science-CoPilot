@@ -30,4 +30,5 @@ LARGE_FILE_THRESHOLD = 100000 # more than 100k rows, then sample down to 50k bef
 SAMPLE_SIZE = 50000 
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", default = "http://localhost:8501").split(',')
 
