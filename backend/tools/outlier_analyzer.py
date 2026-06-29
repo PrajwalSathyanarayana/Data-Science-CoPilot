@@ -10,10 +10,10 @@ def analyze_outlier(df: pd.DataFrame, method: str = "iqr") -> ToolResult:
             q1 = outliers.quantile(0.25)
             q3 = outliers.quantile(0.75)
             iqr = q3 - q1
-            mask = ((outliers < (q1 - 1.5 * iqr)) | (outliers > (q3 + 1.5* iqr)))
+            mask = ((outliers < (q1 - 1.5 * iqr)) | (outliers > (q3 + 1.5* iqr))) # True is an outlier, False is not.
 
         elif method == 'zscore':
-            z_score = (outliers - outliers.mean()) / (outliers.std())
+            z_score = (outliers - outliers.mean()) / (outliers.std()) # z_score = (value - mean)/std
             mask = z_score.abs() > 3
 
         outlier_count = mask.sum()
