@@ -32,8 +32,8 @@ def analyze_missing_values(df: pd.DataFrame) -> ToolResult:
 
     except Exception as e:
         return ToolResult(
-            success = False,
             tool_name = "missing_value_analyzer",
+            success = False,
             payload = {},
             summary = "",
             error = str(e),
