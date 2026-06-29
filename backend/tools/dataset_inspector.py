@@ -15,7 +15,7 @@ def inspect_dataset(df: pd.DataFrame) -> ToolResult:
 
         for col, dtype in payload['dtypes'].items():
             desc = payload['describe'].get(col, {})
-            if 'mean' in desc:
+            if pd.notna(desc.get("mean")):
                 lines.append(f"{col} ({dtype}): mean={desc['mean']:.2f}, std = {desc['std']:.2f}")
             else:
                 lines.append(f"{col} ({dtype}): {df[col].nunique()} unique values")
