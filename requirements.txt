@@ -1,0 +1,18 @@
+# Runtime dependencies — pin versions before production
+fastapi
+uvicorn[standard]
+python-multipart
+anthropic
+pandas
+numpy
+scipy
+scikit-learn
+plotly
+matplotlib
+seaborn
+fpdf2
+nbformat
+pydantic>=2.0
+chromadb
+chardet
+python-dotenv
