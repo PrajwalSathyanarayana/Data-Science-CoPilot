@@ -37,7 +37,7 @@ def analyze_visualizations(df: pd.DataFrame, tool_results: dict) -> ToolResult:
         summary = f"Generated {len(figures)} visualizations: {', '.join(figures.keys())}"
 
         return ToolResult(
-            tool_name = "visualize_data",
+            tool_name = "visualization_analyzer",
             success = True,
             payload = payload,
             summary = summary,
@@ -47,7 +47,7 @@ def analyze_visualizations(df: pd.DataFrame, tool_results: dict) -> ToolResult:
 
     except Exception as e:
         return ToolResult(
-            tool_name = "visualize_data",
+            tool_name = "visualization_analyzer",
             success = False,
             payload = {},
             summary = '',

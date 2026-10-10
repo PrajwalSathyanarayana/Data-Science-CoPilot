@@ -35,7 +35,7 @@ def analyze_outlier(df: pd.DataFrame, method: str = "iqr") -> ToolResult:
         summary = "\n".join(lines)
 
         return ToolResult(
-            tool_name = "analyze_outlier",
+            tool_name = "outlier_analyzer",
             success = True,
             payload = payload,
             summary = summary,
@@ -44,7 +44,7 @@ def analyze_outlier(df: pd.DataFrame, method: str = "iqr") -> ToolResult:
     
     except Exception as e:
         return ToolResult(
-            tool_name = "analyze_outlier",
+            tool_name = "outlier_analyzer",
             success = False,
             payload = {},
             summary = "",

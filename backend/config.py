@@ -31,10 +31,10 @@ CHARS_PER_TOKEN = 4 # rough rule of thumb for English text with Claude's tokeniz
 TOOL_PRIORITY = [
     "dataset_inspector",
     "missing_value_analyzer",
-    "analyze_outlier",
+    "outlier_analyzer",
     "correlation_analyzer",
-    "visualize_data",
-    "generate_notebook",
+    "visualization_analyzer",
+    "notebook_generator",
 ]
 
 

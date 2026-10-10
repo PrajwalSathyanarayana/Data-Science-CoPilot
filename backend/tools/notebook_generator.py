@@ -54,7 +54,7 @@ def generate_notebook(df:pd.DataFrame, tool_results: dict, insights: str, report
             nbformat.write(nb, f)
         
         return ToolResult(
-            tool_name = "generate_notebook",
+            tool_name = "notebook_generator",
             success = True,
             payload = {"notebook_path": output_path},
             summary = f"Notebook saved to {output_path}",
@@ -63,7 +63,7 @@ def generate_notebook(df:pd.DataFrame, tool_results: dict, insights: str, report
     
     except Exception as e:
         return ToolResult(
-            tool_name = "generate_notebook",
+            tool_name = "notebook_generator",
             success = False,
             payload = {},
             summary = '',
