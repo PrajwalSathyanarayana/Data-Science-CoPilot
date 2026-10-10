@@ -46,6 +46,13 @@ PLANNER_TOOLS = [
     "visualization_analyzer",
 ]
 
+# Autonomous column detection (runs before the planner)
+DATE_PARSE_SAMPLE_SIZE = 100 # how many non-empty values to try parsing as dates per text column
+DATE_PARSE_MIN_RATIO = 0.9 # share of sampled values that must parse for the column to count as a date
+SKEW_THRESHOLD = 1.0 # numeric column is flagged as long-tailed when abs(skewness) is above this (1.0 = "highly skewed")
+SKEW_MIN_VALUES = 20 # skewness is unreliable on very few values, so smaller columns are not checked
+IMBALANCE_THRESHOLD = 0.15 # binary column is flagged when its smaller class is below this share of rows
+
 
 ALLOWED_FILE_TYPE = ['csv', 'xlsx', 'xls']
 
