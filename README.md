@@ -17,7 +17,7 @@ Under the hood, Python and pandas handle all the computation. Claude (Anthropic'
 
 - **Backend:** FastAPI (Python)
 - **Frontend:** React/Node.js (in progress)
-- **LLM:** Claude API (`claude-sonnet-4-20250514` for analysis, `claude-haiku-4-5-20251001` for critic)
+- **LLM:** Claude API (`claude-opus-5-5` for analysis, `claude-haiku-5-5` for critic)
 - **Data:** pandas, numpy, scipy, scikit-learn
 - **Visualization:** Plotly (interactive), Matplotlib/Seaborn (export)
 - **Notebook export:** nbformat
