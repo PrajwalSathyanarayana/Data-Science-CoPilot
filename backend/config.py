@@ -23,6 +23,20 @@ HYPOTHESIS_MAX_TOKENS = 1000
 AGENT_STEPS_MAX = 10
 AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.
 
+SAFETY_MARGIN = 0.20 # safety margin below each agent's input budget, since token counts are estimated
+CHARS_PER_TOKEN = 4 # rough rule of thumb for English text with Claude's tokenizer
+
+# Order in which tool summaries are kept when an agent's budget is tight (most important first).
+# Tools not listed here are kept last, in the order they ran.
+TOOL_PRIORITY = [
+    "dataset_inspector",
+    "missing_value_analyzer",
+    "analyze_outlier",
+    "correlation_analyzer",
+    "visualize_data",
+    "generate_notebook",
+]
+
 
 ALLOWED_FILE_TYPE = ['csv', 'xlsx', 'xls']
 
