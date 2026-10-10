@@ -11,8 +11,8 @@ MAX_FILE_SIZE = int(os.getenv("MAX_UPLOAD_BYTES", default = "52428800"))
 APP_ENV = os.getenv("APP_ENV", default = "")
 APP_PORT = int(os.getenv("APP_PORT", default = "5000"))
 
-ANALYSIS_MODEL = "claude-sonnet-4-20250514"
-CRITIC_MODEL = "claude-haiku-4-5-20251001"
+ANALYSIS_MODEL = "claude-opus-5-5" # planner, insight generator, hypothesis agents
+CRITIC_MODEL = "claude-haiku-5-5" # critic: review-only, so the cheapest current model
 
 LLM_MAX_TOKENS = 1000
 PLANNER_MAX_TOKENS = 800
