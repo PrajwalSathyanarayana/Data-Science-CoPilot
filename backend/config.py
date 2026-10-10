@@ -37,6 +37,15 @@ TOOL_PRIORITY = [
     "notebook_generator",
 ]
 
+# Tools the planner is allowed to schedule. dataset_inspector always runs before the planner,
+# and notebook_generator runs after the agents, so neither is the planner's choice.
+PLANNER_TOOLS = [
+    "missing_value_analyzer",
+    "outlier_analyzer",
+    "correlation_analyzer",
+    "visualization_analyzer",
+]
+
 
 ALLOWED_FILE_TYPE = ['csv', 'xlsx', 'xls']
 
