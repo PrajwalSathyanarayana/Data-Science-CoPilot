@@ -1,9 +1,11 @@
 """Build the small sample files in tests/sample_data/. Used by tests, smoke scripts, and the README "Try it" section.
 
-Every value is computed from a formula (no randomness), so re-running produces identical files.
+Values come from formulas or from random.Random with a fixed seed (Python guarantees random() repeats
+exactly for the same seed), so re-running produces identical files.
 Run from the project root:
     python -m scripts.generate_sample_data
 """
+import random
 from pathlib import Path
 
 import pandas as pd
@@ -88,6 +90,56 @@ def survey_with_gaps() -> pd.DataFrame:
     })
 
 
+def _uniform(seed: int, n: int, low: float, high: float) -> list:
+    """n evenly spread random values between low and high, identical on every run."""
+    rng = random.Random(seed)
+    return [low + (high - low) * rng.random() for _ in range(n)]
+
+
+def shop_orders() -> pd.DataFrame:
+    """Every kind of column pair for the correlation tool: straight-line, curved and extreme-driven number pairs,
+    two-value and category columns, a near-duplicate, a leakage column, an ID, free text, a constant, and a sparse column.
+    Each column's noise uses its own seed, so columns are only related where a formula links them."""
+    n = 300
+    regions = ["north", "east", "west", "south"]
+    base_value = {"north": 120, "east": 80, "west": 60, "south": 40}
+    segments = ["new", "regular", "vip"]
+
+    region = [regions[i % 4] for i in range(n)]
+    order_value = [round(base_value[r] + noise, 2) for r, noise in zip(region, _uniform(1, n, -30, 30))]
+    delivery_days = [1 + int(u) for u in _uniform(2, n, 0, 9)]
+    returned = ["yes" if d >= 8 or u < 0.08 else "no" for d, u in zip(delivery_days, _uniform(3, n, 0, 1))]
+    segment = [segments[int(u)] for u in _uniform(4, n, 0, 3)]
+    temp = [round(t, 1) for t in _uniform(5, n, -15, 35)]
+
+    return pd.DataFrame({
+        "order_id": [5001 + i for i in range(n)],
+        "order_date": pd.date_range("2024-01-01", periods=n, freq="D").strftime("%Y-%m-%d"),
+        "region": region,
+        "order_value": order_value,
+        "order_value_cad": [round(v * 1.37, 2) for v in order_value],  # the same amount in another currency
+        "delivery_days": delivery_days,
+        "rating": [
+            round(5.2 - 0.3 * d + noise, 1) if i % 50 else None
+            for i, (d, noise) in enumerate(zip(delivery_days, _uniform(6, n, -1.2, 1.2)))
+        ],
+        "returned": returned,
+        # Issued because the order came back: almost a copy of 'returned' (leakage if 'returned' is the target)
+        "refund_issued": [("no" if i == 7 else r) for i, r in enumerate(returned)],
+        "customer_segment": segment,
+        "payment_method": ["cash" if s == "new" or u < 0.2 else "card" for s, u in zip(segment, _uniform(7, n, 0, 1))],
+        "outdoor_temp_c": temp,
+        # Costly to ship in very cold and very hot weather: a U-shape
+        "shipping_cost": [round(5 + 0.01 * (t - 10) ** 2 + noise, 2) for t, noise in zip(temp, _uniform(8, n, 0, 1.5))],
+        # Unrelated, except one huge order with many support calls
+        "basket_items": [200 if i == 0 else 1 + int(u) for i, u in enumerate(_uniform(9, n, 0, 7))],
+        "support_calls": [60 if i == 0 else int(u) for i, u in enumerate(_uniform(10, n, 0, 5))],
+        "loyalty_points": [round(u) if i % 15 == 0 else None for i, u in enumerate(_uniform(11, n, 0, 500))],  # only 20 rows filled in
+        "notes": [f"order note {i}" for i in range(n)],
+        "gift_wrap": ["no"] * n,
+    })
+
+
 def write_excel_if_changed(path: Path, sheets: dict) -> None:
     """Excel files store a "last saved" time, so rewriting identical data still changes the file's bytes.
     Only write when the content differs, so re-running this script doesn't show up as a change in git."""
@@ -109,6 +161,7 @@ def main() -> None:
     latin1_rows().to_csv(OUT_DIR / "latin1_encoded.csv", index=False, encoding="latin-1")
     semicolon_rows().to_csv(OUT_DIR / "semicolon_separated.csv", index=False, sep=";")
     survey_with_gaps().to_csv(OUT_DIR / "survey_with_gaps.csv", index=False)
+    shop_orders().to_csv(OUT_DIR / "shop_orders.csv", index=False)
 
     # Two sheets: the loader should read the first one and report that there were two
     write_excel_if_changed(OUT_DIR / "hospital.xlsx", {
