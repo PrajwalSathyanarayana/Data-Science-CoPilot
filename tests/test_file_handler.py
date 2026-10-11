@@ -23,6 +23,8 @@ def load_sample(name: str):
         ("sales.csv", (200, 4), ["order_date", "customer_id", "order_value", "region"], "utf-8", ","),
         ("semicolon_separated.csv", (40, 4), ["age", "job", "balance", "subscribed"], "utf-8", ";"),
         ("latin1_encoded.csv", (20, 2), ["city", "visits"], "windows-1252", ","),
+        ("survey_with_gaps.csv", (400, 7),
+         ["respondent_id", "age", "income", "employer", "workclass", "marital", "fax_number"], "utf-8", ","),
     ],
 )
 def test_sample_csv_files_load_correctly(name, shape, columns, encoding, delimiter):

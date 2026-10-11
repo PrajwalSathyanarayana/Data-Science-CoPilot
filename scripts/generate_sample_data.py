@@ -72,6 +72,34 @@ def semicolon_rows() -> pd.DataFrame:
     })
 
 
+def survey_with_gaps() -> pd.DataFrame:
+    """Survey-style data with every kind of gap: blanks that occur together, '?' placeholders,
+    'unknown' as a real answer, a fully empty column, and a tiny gap."""
+    n = 400
+    skipped_section = [i % 5 == 0 for i in range(n)]  # 20% of people skipped the employment section
+    return pd.DataFrame({
+        "respondent_id": [f"R{i:04d}" for i in range(n)],
+        "age": [None if i == 13 else 18 + (i % 50) for i in range(n)],
+        "income": [None if skipped else 30000 + 250 * (i % 120) for i, skipped in enumerate(skipped_section)],
+        "employer": [None if skipped else ["acme", "globex", "initech"][i % 3] for i, skipped in enumerate(skipped_section)],
+        "workclass": ["?" if i % 25 == 0 else ["private", "public", "self"][i % 3] for i in range(n)],
+        "marital": ["unknown" if i % 40 == 0 else ["single", "married"][i % 2] for i in range(n)],
+        "fax_number": [None] * n,
+    })
+
+
+def write_excel_if_changed(path: Path, sheets: dict) -> None:
+    """Excel files store a "last saved" time, so rewriting identical data still changes the file's bytes.
+    Only write when the content differs, so re-running this script doesn't show up as a change in git."""
+    if path.exists():
+        existing = pd.read_excel(path, sheet_name=None)
+        if list(existing) == list(sheets) and all(existing[name].equals(df) for name, df in sheets.items()):
+            return
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        for name, df in sheets.items():
+            df.to_excel(writer, sheet_name=name, index=False)
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -80,11 +108,13 @@ def main() -> None:
     (OUT_DIR / "messy_headers.csv").write_text(messy_headers_csv(), encoding="utf-8")
     latin1_rows().to_csv(OUT_DIR / "latin1_encoded.csv", index=False, encoding="latin-1")
     semicolon_rows().to_csv(OUT_DIR / "semicolon_separated.csv", index=False, sep=";")
+    survey_with_gaps().to_csv(OUT_DIR / "survey_with_gaps.csv", index=False)
 
     # Two sheets: the loader should read the first one and report that there were two
-    with pd.ExcelWriter(OUT_DIR / "hospital.xlsx", engine="openpyxl") as writer:
-        hospital().to_excel(writer, sheet_name="admissions", index=False)
-        pd.DataFrame({"note": ["Synthetic data for testing"]}).to_excel(writer, sheet_name="readme", index=False)
+    write_excel_if_changed(OUT_DIR / "hospital.xlsx", {
+        "admissions": hospital(),
+        "readme": pd.DataFrame({"note": ["Synthetic data for testing"]}),
+    })
 
     for path in sorted(OUT_DIR.glob("*.*")):
         if path.suffix != ".gitkeep" and path.name != ".gitkeep":
