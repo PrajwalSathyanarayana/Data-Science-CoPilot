@@ -26,11 +26,13 @@ AGENT_LLM_SETTINGS = {
 LLM_MAX_RETRIES = 3 # SDK retries rate limits, server errors and network errors with backoff
 LLM_TIMEOUT_SECONDS = 120.0 # per attempt
 
-# Input budgets: the most tokens of tool summaries token_manager may send to each agent
-PLANNER_MAX_TOKENS = 800
-INSIGHT_GENERATOR_MAX_TOKENS = 3000
-CRITIC_AGENT_MAX_TOKENS = 2000
-HYPOTHESIS_MAX_TOKENS = 1000
+# Input budgets: the most tokens of tool summaries token_manager may send to each agent.
+# Sized to fit the most each agent can receive today (tool summaries are capped at 500 tokens each),
+# plus headroom. They also act as a fuse: a bug or a hostile file can't blow up the cost of a call.
+PLANNER_MAX_TOKENS = 2000 # inspector summary + column flags
+INSIGHT_GENERATOR_MAX_TOKENS = 8000 # up to 5 tool summaries + flags + plan
+CRITIC_AGENT_MAX_TOKENS = 6000 # insights + tool summaries
+HYPOTHESIS_MAX_TOKENS = 3000 # insights + plan + flags
 
 # Tool output
 TOOL_SUMMARY_MAX_TOKENS = 500 # a tool's summary (the part sent to the LLM) must stay under this
