@@ -9,7 +9,7 @@ import pandas as pd
 from ..config import INSPECTOR_SAMPLE_ROWS, TOOL_SUMMARY_MAX_TOKENS
 from ..models import ToolResult
 from ..utils.json_safe import to_json_safe
-from ..utils.token_manager import estimate_tokens
+from ..utils.summary_builder import SummaryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -126,24 +126,13 @@ def _summary_line(column: Dict[str, Any], total_rows: int) -> str:
 def _build_summary(rows: int, columns: List[Dict[str, Any]], kind_counts: Dict[str, int]) -> str:
     """Overview line first, then column lines until the token budget is reached."""
     kinds = ", ".join(f"{count} {kind}" for kind, count in kind_counts.items())
-    lines = [f"Dataset: {rows:,} rows x {len(columns):,} columns ({kinds})"]
-
-    # Leave room for the closing "... and N more columns" line
-    tail_reserve = estimate_tokens("... and 100,000 more columns (all columns are in the full results)") + 1
-    used = estimate_tokens(lines[0])
-    shown = 0
-    for column in columns:
-        line = _summary_line(column, rows)
-        cost = estimate_tokens(line) + 1  # +1 for the newline
-        if used + cost + tail_reserve > TOOL_SUMMARY_MAX_TOKENS:
-            break
-        lines.append(line)
-        used += cost
-        shown += 1
-
-    if shown < len(columns):
-        lines.append(f"... and {len(columns) - shown:,} more columns (all columns are in the full results)")
-    return "\n".join(lines)
+    builder = SummaryBuilder(TOOL_SUMMARY_MAX_TOKENS)
+    builder.add(f"Dataset: {rows:,} rows x {len(columns):,} columns ({kinds})")
+    builder.add_items(
+        [_summary_line(column, rows) for column in columns],
+        more=lambda n: f"... and {n:,} more columns (all columns are in the full results)",
+    )
+    return builder.text()
 
 
 def inspect_dataset(df: pd.DataFrame) -> ToolResult:
