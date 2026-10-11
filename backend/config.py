@@ -38,14 +38,29 @@ HYPOTHESIS_MAX_TOKENS = 3000 # insights + plan + flags
 TOOL_SUMMARY_MAX_TOKENS = 1000 # a tool's summary (the part sent to the LLM) must stay under this
 INSPECTOR_SAMPLE_ROWS = 3 # example rows kept by dataset_inspector (fewer if the file is smaller)
 
+# Checks that compare columns in pairs (missing together, correlations). Pairs grow with the square of
+# the column count (75 columns = 2,775 pairs; 2,000 columns = about 2 million), so these checks look at
+# most this many columns. Checks of one column at a time always use every column. Every row is always used.
+PAIR_CHECK_MAX_COLUMNS = 75
+
 # missing_value_analyzer
 MISSING_HIGHLIGHT_PCT = 1.0 # columns above this % missing get their own summary line; the rest are counted
 # Text values that often stand for "no data". Counted as possible placeholders, never changed.
 # (pandas already turns "", "NA", "N/A", "null", "None", "NaN" into real missing values when loading.)
 MISSING_PLACEHOLDERS = ["?", "-", "--", "---", ".", "unknown", "unk", "missing", "not available", "n.a.", "undefined", "tbd"]
-CO_MISSING_MAX_COLUMNS = 50 # only the most-missing columns are compared in pairs (50 columns = 1,225 pairs)
 CO_MISSING_MIN_OVERLAP = 0.8 # a pair is reported when 80%+ of rows missing either column are missing both
 CO_MISSING_MIN_ROWS = 5 # ...and at least this many rows are missing both
+
+# correlation_analyzer
+CORR_MIN_ROWS = 30 # a pair is measured only when at least this many rows have both values (fewer gives chance "relationships")
+CORR_MAX_CATEGORIES = 50 # text columns with more different values than this are not compared (IDs, free text)
+CORR_MIN_STRENGTH = 0.3 # relationships listed in the summary must be at least this strong (all are in the payload)
+CORR_NEAR_PERFECT = 0.95 # pairs this strong are reported as near-duplicates, or possible leakage when the target is involved
+CORR_METHOD_GAP = 0.2 # Pearson and Spearman this far apart: "not a straight line" or "driven by extreme values"
+CORR_BANDS = 10 # the curve check splits a number column into this many equal-sized bands
+CORR_CURVE_MIN = 0.5 # a pair is reported as a curve when the banded score is at least this...
+CORR_CURVE_MARGIN = 0.2 # ...and at least this much higher than both Pearson and Spearman
+CORR_SUMMARY_TOP = 10 # most pairs listed per summary section
 
 AGENT_STEPS_MAX = 10
 AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.

@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 
 from ..config import (
-    CO_MISSING_MAX_COLUMNS,
     CO_MISSING_MIN_OVERLAP,
     CO_MISSING_MIN_ROWS,
     MISSING_HIGHLIGHT_PCT,
     MISSING_PLACEHOLDERS,
+    PAIR_CHECK_MAX_COLUMNS,
     TOOL_SUMMARY_MAX_TOKENS,
 )
 from ..models import ToolResult
@@ -96,7 +96,7 @@ def _missing_together(is_missing: np.ndarray, columns: List[Dict[str, Any]], tot
         i for i, col in enumerate(columns)
         if col["missing_pct"] > MISSING_HIGHLIGHT_PCT and col["missing"] < total_rows
     ]
-    candidates = sorted(candidates, key=lambda i: -columns[i]["missing"])[:CO_MISSING_MAX_COLUMNS]
+    candidates = sorted(candidates, key=lambda i: -columns[i]["missing"])[:PAIR_CHECK_MAX_COLUMNS]
 
     pairs = []
     for a, b in combinations(candidates, 2):
