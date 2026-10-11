@@ -22,6 +22,7 @@ from ..config import (
     TOOL_SUMMARY_MAX_TOKENS,
 )
 from ..models import ToolResult
+from ..utils.column_rules import looks_like_id
 from ..utils.formatting import format_number
 from ..utils.json_safe import to_json_safe
 from ..utils.summary_builder import SummaryBuilder
@@ -73,14 +74,6 @@ class _Column:
 
 
 # --- preparing columns ---
-
-def _looks_like_id(distinct: np.ndarray, count: int) -> bool:
-    """Every value different, whole numbers, evenly spaced (1, 2, 3... or 10001, 10002...): a row number or ID."""
-    if distinct.size != count or distinct.size < 3 or not np.all(distinct == np.round(distinct)):
-        return False
-    steps = np.diff(distinct)
-    return bool(np.all(steps == steps[0]))
-
 
 def _label_column(position: int, name: str, labels: pd.Series) -> Union[_Column, str]:
     """Two-value and category columns, from text labels (missing values stay missing)."""
@@ -135,7 +128,7 @@ def _prepare_column(position: int, name: str, series: pd.Series) -> Union[_Colum
             return "no values"
         if distinct.size == 1:
             return "only one value"
-        if _looks_like_id(distinct, present.size):
+        if looks_like_id(distinct, present.size):
             return "looks like a row number, ID or evenly spaced sequence"
         return _Column(position, name, NUMBER, values, int(np.isnan(values).sum()))
 

@@ -15,6 +15,7 @@ from ..config import (
     TOOL_SUMMARY_MAX_TOKENS,
 )
 from ..models import ToolResult
+from ..utils.formatting import format_pct
 from ..utils.json_safe import to_json_safe
 from ..utils.summary_builder import SummaryBuilder
 
@@ -27,11 +28,6 @@ MAX_PLACEHOLDER_VALUES_SHOWN = 3
 
 def _share(part: int, whole: int) -> float:
     return 100 * part / whole if whole else 0.0
-
-
-def _format_pct(pct: float) -> str:
-    # "24.1%", but small shares keep a meaningful digit: "0.02%" rather than "0.0%"
-    return f"{pct:.1f}%" if pct >= 1 or pct == 0 else f"{pct:.2g}%"
 
 
 def _placeholders(series: pd.Series) -> Dict[str, int]:
@@ -114,13 +110,13 @@ def _missing_together(is_missing: np.ndarray, columns: List[Dict[str, Any]], tot
 def _column_line(column: Dict[str, Any]) -> str:
     parts = []
     if column["missing"]:
-        parts.append(f"{column['missing']:,} missing ({_format_pct(column['missing_pct'])})")
+        parts.append(f"{column['missing']:,} missing ({format_pct(column['missing_pct'])})")
     else:
         parts.append("no blanks")
     if column["placeholders"]:
         shown = list(column["placeholder_values"].items())[:MAX_PLACEHOLDER_VALUES_SHOWN]
         values = ", ".join(f"'{value}' x{count:,}" for value, count in shown)
-        parts.append(f"{_format_pct(column['placeholder_pct'])} possible placeholders ({values})")
+        parts.append(f"{format_pct(column['placeholder_pct'])} possible placeholders ({values})")
     return f"- {column['name']}: " + ", ".join(parts)
 
 
@@ -136,12 +132,12 @@ def _build_summary(payload: Dict[str, Any]) -> str:
 
     builder.add(
         f"Missing values: {len(with_gaps):,} of {len(columns):,} columns have gaps "
-        f"({payload['total_missing_cells']:,} cells, {_format_pct(payload['missing_cell_pct'])} of all cells)"
+        f"({payload['total_missing_cells']:,} cells, {format_pct(payload['missing_cell_pct'])} of all cells)"
     )
     r = payload["rows"]
     ignoring = f" (ignoring {r['ignored_empty_columns']:,} fully empty column(s))" if r["ignored_empty_columns"] else ""
     builder.add(
-        f"Rows{ignoring}: {r['complete']:,} of {rows:,} ({_format_pct(r['complete_pct'])}) complete; "
+        f"Rows{ignoring}: {r['complete']:,} of {rows:,} ({format_pct(r['complete_pct'])}) complete; "
         f"{r['with_missing']:,} have at least one gap; {r['entirely_empty']:,} are entirely empty"
     )
 

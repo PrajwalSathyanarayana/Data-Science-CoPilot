@@ -17,3 +17,8 @@ def format_number(value: Any) -> str:
     if abs(value) >= 1000:
         return f"{value:,.0f}"
     return f"{value:.4g}"  # 4 significant digits: 0.00012, 3.142, 512
+
+
+def format_pct(pct: float) -> str:
+    """'24.1%', but small shares keep a meaningful digit: '0.02%' rather than '0.0%'."""
+    return f"{pct:.1f}%" if pct >= 1 or pct == 0 else f"{pct:.2g}%"
