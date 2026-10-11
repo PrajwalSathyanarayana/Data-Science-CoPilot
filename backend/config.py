@@ -68,8 +68,9 @@ IMBALANCE_THRESHOLD = 0.15 # binary column is flagged when its smaller class is 
 
 ALLOWED_FILE_TYPE = ['csv', 'xlsx', 'xls']
 
-LARGE_FILE_THRESHOLD = 100000 # more than 100k rows, then sample down to 50k before passing it to LLM
-SAMPLE_SIZE = 50000 
+# File loading. Every row is always kept: all statistics are computed on the full data.
+CSV_SNIFF_BYTES = 65536 # how much of a CSV is inspected to detect its separator (, ; tab |)
+ENCODING_SAMPLE_BYTES = 100000 # how much of a non-UTF-8 file is scanned to guess its encoding
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "reports")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", default = "http://localhost:8501").split(',')
