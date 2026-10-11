@@ -14,7 +14,19 @@ APP_PORT = int(os.getenv("APP_PORT", default = "5000"))
 ANALYSIS_MODEL = "claude-opus-5-5" # planner, insight generator, hypothesis agents
 CRITIC_MODEL = "claude-haiku-5-5" # critic: review-only, so the cheapest current model
 
-LLM_MAX_TOKENS = 1000
+# Per-agent LLM settings. max_tokens caps the OUTPUT, and thinking tokens count toward it,
+# so it must be far larger than the visible answer. effort controls how much the model thinks:
+# "low" | "medium" | "high" | "xhigh" | "max". Tune these with measured cost and quality.
+AGENT_LLM_SETTINGS = {
+    "planner": {"model": ANALYSIS_MODEL, "effort": "medium", "max_tokens": 16000},
+    "insight_generator": {"model": ANALYSIS_MODEL, "effort": "medium", "max_tokens": 16000},
+    "hypothesis": {"model": ANALYSIS_MODEL, "effort": "medium", "max_tokens": 16000},
+    "critic": {"model": CRITIC_MODEL, "effort": "low", "max_tokens": 16000},
+}
+LLM_MAX_RETRIES = 3 # SDK retries rate limits, server errors and network errors with backoff
+LLM_TIMEOUT_SECONDS = 120.0 # per attempt
+
+# Input budgets: the most tokens of tool summaries token_manager may send to each agent
 PLANNER_MAX_TOKENS = 800
 INSIGHT_GENERATOR_MAX_TOKENS = 3000
 CRITIC_AGENT_MAX_TOKENS = 2000
