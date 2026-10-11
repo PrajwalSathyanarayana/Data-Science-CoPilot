@@ -38,6 +38,15 @@ HYPOTHESIS_MAX_TOKENS = 3000 # insights + plan + flags
 TOOL_SUMMARY_MAX_TOKENS = 1000 # a tool's summary (the part sent to the LLM) must stay under this
 INSPECTOR_SAMPLE_ROWS = 3 # example rows kept by dataset_inspector (fewer if the file is smaller)
 
+# missing_value_analyzer
+MISSING_HIGHLIGHT_PCT = 1.0 # columns above this % missing get their own summary line; the rest are counted
+# Text values that often stand for "no data". Counted as possible placeholders, never changed.
+# (pandas already turns "", "NA", "N/A", "null", "None", "NaN" into real missing values when loading.)
+MISSING_PLACEHOLDERS = ["?", "-", "--", "---", ".", "unknown", "unk", "missing", "not available", "n.a.", "undefined", "tbd"]
+CO_MISSING_MAX_COLUMNS = 50 # only the most-missing columns are compared in pairs (50 columns = 1,225 pairs)
+CO_MISSING_MIN_OVERLAP = 0.8 # a pair is reported when 80%+ of rows missing either column are missing both
+CO_MISSING_MIN_ROWS = 5 # ...and at least this many rows are missing both
+
 AGENT_STEPS_MAX = 10
 AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.
 
