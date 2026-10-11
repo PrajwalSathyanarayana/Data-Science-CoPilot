@@ -1,6 +1,5 @@
 """Tool — describes a dataset's shape, column types, per-column statistics, and a few example rows."""
 import logging
-import math
 from typing import Any, Dict, List
 
 import numpy as np
@@ -8,6 +7,7 @@ import pandas as pd
 
 from ..config import INSPECTOR_SAMPLE_ROWS, TOOL_SUMMARY_MAX_TOKENS
 from ..models import ToolResult
+from ..utils.formatting import format_number
 from ..utils.json_safe import to_json_safe
 from ..utils.summary_builder import SummaryBuilder
 
@@ -15,22 +15,6 @@ logger = logging.getLogger(__name__)
 
 TOOL_NAME = "dataset_inspector"
 MAX_TEXT_VALUE_CHARS = 40  # long text values are shortened in the summary
-
-
-def _format_number(value: Any) -> str:
-    """Readable number for the summary: never rounds small values down to zero."""
-    if value is None:
-        return "n/a"
-    # Values that aren't plain numbers (e.g. complex numbers, stored as text) are shown as they are
-    if not isinstance(value, (int, float)):
-        return str(value)
-    if not math.isfinite(value):
-        return "n/a"
-    if abs(value) >= 1e15:
-        return f"{value:.4g}"
-    if abs(value) >= 1000:
-        return f"{value:,.0f}"
-    return f"{value:.4g}"  # 4 significant digits: 0.00012, 3.142, 512
 
 
 def _format_date(iso_text: str) -> str:
@@ -101,7 +85,7 @@ def _summary_line(column: Dict[str, Any], total_rows: int) -> str:
         detail = "no usable values"
     elif kind == "numeric":
         if "mean" in stats:
-            detail = ", ".join(f"{key} {_format_number(stats[key])}" for key in ("mean", "median", "min", "max"))
+            detail = ", ".join(f"{key} {format_number(stats[key])}" for key in ("mean", "median", "min", "max"))
         else:
             detail = "no finite values"
         if stats["infinite"]:
