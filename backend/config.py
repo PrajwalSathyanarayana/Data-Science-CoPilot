@@ -62,6 +62,24 @@ CORR_CURVE_MIN = 0.5 # a pair is reported as a curve when the banded score is at
 CORR_CURVE_MARGIN = 0.2 # ...and at least this much higher than both Pearson and Spearman
 CORR_SUMMARY_TOP = 10 # most pairs listed per summary section
 
+# outlier_analyzer: one column at a time (box-plot rule), then unusual combinations across columns
+OUTLIER_IQR_K = 1.5 # box-plot rule: outside Q1 - 1.5 x IQR or Q3 + 1.5 x IQR. Long-tailed positive columns use the log scale
+OUTLIER_MIN_VALUES = 20 # columns with fewer values to check are not judged
+# Log scale when quartile skew is above this. Quartile skew uses only the middle 50% of values, so typos can't
+# trigger it (two ages of 999 push ordinary skew to 20); 0.1 matches the planner's skew > 1 on typical long-tailed data
+OUTLIER_LOG_QUARTILE_SKEW = 0.1
+OUTLIER_FEW_VALUES = 10 # columns with this many different values or fewer (ratings, small counts) only flag values that are...
+OUTLIER_RARE_PCT = 1.0 # ...outside the normal range AND rarer than this % of checked values (a 1-star review is not an error; a 200-item basket is)
+OUTLIER_DOMINANT_SHARE = 0.5 # when one value fills this share of a column (e.g. mostly 0), the other values are checked among themselves
+OUTLIER_EXTREMES_SHOWN = 3 # most extreme values listed per column in the summary
+OUTLIER_ROWS_KEPT = 100 # flagged row numbers kept per column (and for the row check) for the report; never sent to the LLM
+ROW_CHECK_MAX_COLUMNS = 20 # most number columns used together by the unusual-combination check
+ROW_CHECK_FIT_ROWS = 5000 # the normal "shape" is learned from this many random rows (fixed seed); every row is then checked
+ROW_CHECK_MIN_ROWS = 100 # the row check needs at least this many complete rows, and 10 per column used
+ROW_CHECK_MAX_MISSING_PCT = 50.0 # columns missing more than this % are left out of the row check (they'd leave too few complete rows)
+ROW_CHECK_CUTOFF = 0.999 # a row is unusual when its distance is beyond this share of what normal rows reach
+ROW_CHECK_WARN_PCT = 5.0 # far above the ~0.1% expected: the columns likely follow a curve or groups the check can't model
+
 AGENT_STEPS_MAX = 10
 AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.
 
