@@ -32,6 +32,10 @@ INSIGHT_GENERATOR_MAX_TOKENS = 3000
 CRITIC_AGENT_MAX_TOKENS = 2000
 HYPOTHESIS_MAX_TOKENS = 1000
 
+# Tool output
+TOOL_SUMMARY_MAX_TOKENS = 500 # a tool's summary (the part sent to the LLM) must stay under this
+INSPECTOR_SAMPLE_ROWS = 3 # example rows kept by dataset_inspector (fewer if the file is smaller)
+
 AGENT_STEPS_MAX = 10
 AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.
 
