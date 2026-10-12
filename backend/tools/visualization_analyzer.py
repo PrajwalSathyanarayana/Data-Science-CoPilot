@@ -18,12 +18,11 @@ from ..config import (
     CHART_MAX_TIME_POINTS,
     CHART_MAX_TOTAL,
     CHART_SCATTER_SAMPLE,
-    CORR_MIN_STRENGTH,
-    CORR_SUMMARY_TOP,
     OUTLIER_FEW_VALUES,
     TOOL_SUMMARY_MAX_TOKENS,
 )
 from ..models import ColumnFlag, ToolResult
+from .correlation_analyzer import report_pairs
 from ..utils.column_rules import looks_like_id
 from ..utils.formatting import format_number, format_pct
 from ..utils.json_safe import to_json_safe
@@ -154,19 +153,6 @@ def _balance_charts(df: pd.DataFrame, target_column: Optional[str], flags: Seque
 
 
 # --- relationship charts ---
-
-def _report_pairs(correlation: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    """The same pairs the correlation summary lists, in the same order."""
-    pairs = correlation.get("pairs", [])
-    target_ok = correlation.get("target_column") is not None and not correlation.get("target_skipped_reason")
-    near = [p for p in pairs if p["near_duplicate"]][:CORR_SUMMARY_TOP]
-    rest = [p for p in pairs if not p["near_duplicate"]]
-    target = [p for p in rest if target_ok and p["involves_target"] and p["strength"] >= CORR_MIN_STRENGTH][:CORR_SUMMARY_TOP]
-    others = [p for p in rest if not (target_ok and p["involves_target"])]
-    strong = [p for p in others if p["strength"] >= CORR_MIN_STRENGTH and not p.get("curve")][:CORR_SUMMARY_TOP]
-    curves = [p for p in pairs if p.get("curve")][:CORR_SUMMARY_TOP]
-    return near + target + strong + curves
-
 
 def _flagged_rows(outliers: Mapping[str, Any], positions: Sequence[int]) -> np.ndarray:
     """0-based row positions the outlier tool flagged in any of these columns."""
@@ -425,7 +411,7 @@ def analyze_visualizations(
         add("heatmap", lambda: _correlation_heatmap(correlation), "correlation heatmap")
         for chart in _safe_list(lambda: _balance_charts(df, target_column, flags), skipped, "class balance"):
             add("balance", lambda chart=chart: chart, "class balance")
-        for pair in _report_pairs(correlation):
+        for pair in report_pairs(correlation):
             add("rel", lambda pair=pair: _relationship_chart(df, pair, outliers), f"relationship {pair['columns'][0]} & {pair['columns'][1]}")
         box_columns = sorted((c for c in outliers.get("columns", []) if c["outlier_count"]), key=lambda c: -c["outlier_pct"])
         for column in box_columns[:CHART_MAX_BOXES]:

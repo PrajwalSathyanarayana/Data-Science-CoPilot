@@ -3,7 +3,7 @@ import logging
 import math
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -470,6 +470,21 @@ def _build_summary(payload: Dict[str, Any]) -> str:
     if payload["no_variation"]:
         builder.add(f"{payload['no_variation']:,} pair(s) not measured: a column has only one value in the shared rows")
     return builder.text()
+
+
+# --- pairs the summary lists (shared with charts and notebook) ---
+
+def report_pairs(correlation: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """The pairs the summary lists, in the same order, from a payload of this tool. Used by the charts and the notebook."""
+    pairs = correlation.get("pairs", [])
+    target_ok = correlation.get("target_column") is not None and not correlation.get("target_skipped_reason")
+    near = [p for p in pairs if p["near_duplicate"]][:CORR_SUMMARY_TOP]
+    rest = [p for p in pairs if not p["near_duplicate"]]
+    target = [p for p in rest if target_ok and p["involves_target"] and p["strength"] >= CORR_MIN_STRENGTH][:CORR_SUMMARY_TOP]
+    others = [p for p in rest if not (target_ok and p["involves_target"])]
+    strong = [p for p in others if p["strength"] >= CORR_MIN_STRENGTH and not p.get("curve")][:CORR_SUMMARY_TOP]
+    curves = [p for p in pairs if p.get("curve")][:CORR_SUMMARY_TOP]
+    return near + target + strong + curves
 
 
 # --- entry point ---
