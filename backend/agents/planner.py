@@ -112,6 +112,32 @@ def _parse_dates(values: pd.Series, dayfirst: Optional[bool]) -> Tuple[pd.Series
     return best, "ambiguous" if ambiguous else "ok"
 
 
+def _parse_all_dates(values: pd.Series, dayfirst: Optional[bool]) -> Tuple[pd.Series, str, bool]:
+    """Parse every value. Returns (dates, status, whether the user's day/month setting was ignored)."""
+    full, status = _parse_dates(values, dayfirst)
+    # The user's day/month setting didn't fit these dates, but the data itself might settle it
+    if dayfirst is not None and status == "mixed":
+        auto, auto_status = _parse_dates(values, None)
+        if auto_status != "mixed":
+            return auto, auto_status, True
+    return full, status, False
+
+
+def parse_date_column(series: pd.Series, dayfirst: Optional[bool] = None) -> pd.Series:
+    """Read a column found by detection as dates, with the same rules (day/month order included).
+
+    Returns dates aligned with the column (NaT where a value isn't a date). Used by tools that
+    draw or group by time, so "05/01/2024" means the same day everywhere in the report.
+    """
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return series
+    values = series.dropna().astype(str)
+    if values.empty:
+        return pd.Series(pd.NaT, index=series.index, dtype="datetime64[ns]")
+    full, _, _ = _parse_all_dates(values, dayfirst)
+    return full.reindex(series.index)
+
+
 def _date_detail(series: pd.Series, dayfirst: Optional[bool]) -> Optional[str]:
     """Return a description if the column holds dates, otherwise None."""
     # Columns pandas already recognised as dates
@@ -139,7 +165,6 @@ def _date_detail(series: pd.Series, dayfirst: Optional[bool]) -> Optional[str]:
     if not has_four_digit_year and _two_digit_year_formats(sample.iloc[0]) == (None, None):
         return None
 
-    setting_ignored = False
     try:
         # The sample only decides IF it's a date column
         sample_parsed, _ = _parse_dates(sample, dayfirst)
@@ -147,13 +172,7 @@ def _date_detail(series: pd.Series, dayfirst: Optional[bool]) -> Optional[str]:
             return None
 
         # Facts in the report come from every row (about 1 second per million rows)
-        full, status = _parse_dates(values, dayfirst)
-
-        # The user's day/month setting didn't fit these dates, but the data itself might settle it
-        if dayfirst is not None and status == "mixed":
-            auto, auto_status = _parse_dates(values, None)
-            if auto_status != "mixed":
-                full, status, setting_ignored = auto, auto_status, True
+        full, status, setting_ignored = _parse_all_dates(values, dayfirst)
     except (ValueError, TypeError):
         return None
 
