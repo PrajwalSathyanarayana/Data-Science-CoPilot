@@ -47,7 +47,7 @@ def main() -> None:
     # Each of these should be rejected, which is what triggers the planner's retry
     runner.section("Hallucinations and bad output are rejected")
     base = json.loads(llm_response)
-    allowed = "['missing_value_analyzer', 'outlier_analyzer', 'correlation_analyzer', 'visualization_analyzer']"
+    allowed = "['missing_value_analyzer', 'outlier_analyzer', 'correlation_analyzer']"
     cases = [
         ("made-up tool", {"steps": ["sentiment_analyzer"]},
          f"Value error, Unknown tool(s): ['sentiment_analyzer']. Allowed tools: {allowed}"),

@@ -59,7 +59,7 @@ def test_focus_columns_default_to_empty():
 
 # --- steps ---
 
-@pytest.mark.parametrize("bad_tool", ["dataset_inspector", "notebook_generator", "made_up_tool"])
+@pytest.mark.parametrize("bad_tool", ["dataset_inspector", "visualization_analyzer", "notebook_generator", "made_up_tool"])
 def test_tools_outside_planner_list_are_rejected(bad_tool):
     with pytest.raises(ValidationError, match="Unknown tool"):
         AnalysisPlan.model_validate(plan_data(steps=["missing_value_analyzer", bad_tool]))

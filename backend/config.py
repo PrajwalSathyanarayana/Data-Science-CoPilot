@@ -80,6 +80,17 @@ ROW_CHECK_MAX_MISSING_PCT = 50.0 # columns missing more than this % are left out
 ROW_CHECK_CUTOFF = 0.999 # a row is unusual when its distance is beyond this share of what normal rows reach
 ROW_CHECK_WARN_PCT = 5.0 # far above the ~0.1% expected: the columns likely follow a curve or groups the check can't model
 
+# visualization_analyzer: charts are counted by pandas, so their size doesn't grow with the number of rows
+CHART_MAX_TOTAL = 60 # most charts per report (overview, target, relationships, outliers, time, distributions - in that order)
+CHART_MAX_DISTRIBUTIONS = 30 # one distribution chart per column, for at most this many columns
+CHART_MAX_BOXES = 10 # box plots for the columns most affected by outliers
+CHART_HIST_BINS = 40 # bars per histogram
+CHART_MAX_BARS = 20 # most groups or values shown in a bar chart; the rest are grouped as "other"
+CHART_SCATTER_SAMPLE = 2000 # scatter plots of bigger files show a random sample of this many rows (fixed seed)...
+# ...plus every row the outlier tool flagged, so the chart always shows what the summary reports
+CHART_MAX_TIME_POINTS = 100 # time charts use day, week, month, quarter or year, whichever gives at most this many points
+CHART_MAX_DATE_COLUMNS = 3 # most date columns given a time chart
+
 AGENT_STEPS_MAX = 10
 AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.
 
@@ -97,13 +108,13 @@ TOOL_PRIORITY = [
     "notebook_generator",
 ]
 
-# Tools the planner is allowed to schedule. dataset_inspector always runs before the planner,
-# and notebook_generator runs after the agents, so neither is the planner's choice.
+# Tools the planner is allowed to schedule. dataset_inspector always runs before the planner;
+# visualization_analyzer runs after the planner's tools (its charts follow their findings);
+# notebook_generator runs after the agents. None of those three is the planner's choice.
 PLANNER_TOOLS = [
     "missing_value_analyzer",
     "outlier_analyzer",
     "correlation_analyzer",
-    "visualization_analyzer",
 ]
 
 # Autonomous column detection (runs before the planner)
