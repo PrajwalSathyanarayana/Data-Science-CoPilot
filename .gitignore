@@ -6,3 +6,6 @@ venv
 
 __pycache__/
 *.pyc
+# Generated reports hold users' uploaded data: never commit them (the empty folder is kept)
+reports/*
+!reports/.gitkeep
