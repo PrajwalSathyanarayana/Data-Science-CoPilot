@@ -9,9 +9,10 @@ import pandas as pd
 
 from ..config import CHART_MAX_BOXES, OUTLIER_IQR_K, OUTLIER_RARE_PCT, REPORTS_DIR
 from ..models import ToolResult
-from ..utils.file_handler import LoadedFile
+from ..utils.file_handler import UNIT_DECIMALS, LoadedFile
 from ..utils.formatting import format_pct
 from ..utils.text_safety import to_plain_markdown
+from ..utils.units import UNIT_NUMBER
 from .correlation_analyzer import report_pairs
 
 logger = logging.getLogger(__name__)
@@ -88,14 +89,49 @@ def _load_cells(nb: _Notebook, loaded: LoadedFile, dataset_name: str) -> None:
     else:
         read = f"df = pd.read_excel(FILE, sheet_name={loaded.sheet_name!r})"
     columns = [str(c) for c in loaded.df.columns]
+    converted = _number_column_lines(loaded, columns)
     nb.code(
         f"FILE = {dataset_name!r}\n{read}\n\n"
         "# Column names as DS Copilot cleaned them (trimmed, lowercase, blanks named, duplicates numbered)\n"
         f"df.columns = {columns!r}\n"
+        f"{converted}"
         "print(df.shape)\ndf.head()",
         finding="file loads with the same shape",
         expect=[f"({loaded.df.shape[0]}, {loaded.df.shape[1]})"],
     )
+
+
+def _number_column_lines(loaded: LoadedFile, columns: List[str]) -> str:
+    """Code repeating how DS Copilot read text columns as numbers: placeholders as missing, units removed or converted."""
+    positions = {name: i for i, name in enumerate(columns)}
+    placeholder_lines, unit_lines = [], []
+    for name, read in loaded.units_read.items():
+        if name not in positions:
+            continue
+        col = _col(loaded.df, positions[name])
+        scales = {label: f[0] for label, f in read["factors"].items()}
+        offsets = {label: f[1] for label, f in read["factors"].items()}
+        rounding = f".round({UNIT_DECIMALS}) + 0.0" if len(scales) > 1 else ""
+        unit_lines += [
+            f"parts = {col}.astype(str).str.extract(UNIT_NUMBER)",
+            "unit = parts['prefix'] + parts['suffix']",
+            f"{col} = (pd.to_numeric(parts['number'].str.replace(',', '', regex=False)) * unit.map({scales!r})"
+            f" + unit.map({offsets!r})){rounding}  # kept in {read['kept']!r}",
+        ]
+    for name, found in loaded.placeholders_read_as_missing.items():
+        if name in positions and name not in loaded.units_read:
+            col = _col(loaded.df, positions[name])
+            placeholder_lines.append(f"{col} = pd.to_numeric({col}.replace({list(found)!r}, np.nan))")
+
+    code = ""
+    if placeholder_lines:
+        code += "\n# Placeholders read as missing in number columns, as DS Copilot did\n" + "\n".join(placeholder_lines) + "\n"
+    if unit_lines:
+        code += (
+            "\n# Numbers written with units ($98.06, 54 km), read as DS Copilot did: number * scale + offset per unit\n"
+            f"UNIT_NUMBER = {UNIT_NUMBER!r}\n" + "\n".join(unit_lines) + "\n"
+        )
+    return code
 
 
 def _missing_cells(nb: _Notebook, df: pd.DataFrame, missing: Mapping[str, Any]) -> None:

@@ -74,6 +74,57 @@ def test_notebook_runs_and_reproduces_the_reports_numbers(name, target, reports_
             assert expected in printed, f"{check['finding']}: expected '{expected}'"
 
 
+def test_notebook_repeats_placeholders_read_as_missing(reports_in_tmp):
+    nbclient = pytest.importorskip("nbclient", reason="install requirements-dev.txt to run notebooks")
+    # The user's file has "?" in every 20th delivery_days cell (15 of 300)
+    raw = pd.read_csv(SAMPLE_DIR / "shop_orders.csv")
+    raw["delivery_days"] = raw["delivery_days"].astype(object)
+    raw.loc[raw.index[::20], "delivery_days"] = "?"
+    folder = reports_in_tmp / "r1"
+    folder.mkdir()
+    raw.to_csv(folder / "orders_q.csv", index=False)
+
+    loaded = load_file((folder / "orders_q.csv").read_bytes(), "orders_q.csv")
+    results = (analyze_missing_values(loaded.df), analyze_correlations(loaded.df, "returned"), analyze_outliers(loaded.df, "returned"))
+    result = generate_notebook(loaded, "orders_q.csv", "r1", {r.tool_name: r.payload for r in results if r.success})
+    notebook = read(reports_in_tmp)
+    assert "df['delivery_days'] = pd.to_numeric(df['delivery_days'].replace(['?'], np.nan))" in notebook.cells[2].source
+
+    nbclient.NotebookClient(notebook, timeout=120, kernel_name="python3", resources={"metadata": {"path": str(folder)}}).execute()
+    checks = {c["finding"]: c["expect"] for c in result.payload["checks"]}
+    assert checks["delivery_days & rating"] == ["Pearson -0.7180", "Spearman -0.7158"]
+    for check in result.payload["checks"]:
+        for expected in check["expect"]:
+            assert expected in cell_output(notebook.cells[check["cell"]]), f"{check['finding']}: expected '{expected}'"
+
+
+def test_notebook_repeats_units_removed_and_converted(reports_in_tmp):
+    nbclient = pytest.importorskip("nbclient", reason="install requirements-dev.txt to run notebooks")
+    # The user's export writes money with "$", days with a unit, and every 3rd temperature in Fahrenheit
+    raw = pd.read_csv(SAMPLE_DIR / "shop_orders.csv")
+    raw["order_value"] = "$" + raw["order_value"].map("{:,.2f}".format)
+    raw["delivery_days"] = raw["delivery_days"].astype(str) + " days"
+    fahrenheit = raw.index % 3 == 0
+    raw["outdoor_temp_c"] = [f"{t * 9 / 5 + 32:.1f}F" if f else f"{t}C" for t, f in zip(raw["outdoor_temp_c"], fahrenheit)]
+    folder = reports_in_tmp / "r1"
+    folder.mkdir()
+    raw.to_csv(folder / "orders_units.csv", index=False)
+
+    loaded = load_file((folder / "orders_units.csv").read_bytes(), "orders_units.csv")
+    assert loaded.resolve_units("outdoor_temp_c", {"C": "degC", "F": "degF"}) is None  # the planner's answer
+    results = (analyze_missing_values(loaded.df), analyze_correlations(loaded.df, "returned"), analyze_outliers(loaded.df, "returned"))
+    result = generate_notebook(loaded, "orders_units.csv", "r1", {r.tool_name: r.payload for r in results if r.success})
+    notebook = read(reports_in_tmp)
+    assert "UNIT_NUMBER = " in notebook.cells[2].source
+
+    nbclient.NotebookClient(notebook, timeout=120, kernel_name="python3", resources={"metadata": {"path": str(folder)}}).execute()
+    checks = {c["finding"]: c["expect"] for c in result.payload["checks"]}
+    assert checks["delivery_days & rating"] == ["Pearson -0.7206", "Spearman -0.7175"]  # same as the clean file
+    for check in result.payload["checks"]:
+        for expected in check["expect"]:
+            assert expected in cell_output(notebook.cells[check["cell"]]), f"{check['finding']}: expected '{expected}'"
+
+
 # --- what the notebook contains ---
 
 def test_findings_are_checked_with_report_numbers():
