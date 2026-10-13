@@ -2,6 +2,7 @@
 import re
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from backend.utils import file_handler
@@ -106,6 +107,112 @@ def test_uppercase_extension_is_accepted():
 def test_blank_header_names_get_placeholders():
     loaded = load_file(b",x,,x\n1,2,3,4\n", "blanks.csv")
     assert list(loaded.df.columns) == ["column_1", "x", "column_3", "x.1"]  # pandas itself renames exact duplicates
+
+
+# --- placeholders in number columns ---
+
+def test_question_marks_in_a_number_column_are_read_as_missing():
+    # delivery_days: 3 "?" among 7 numbers; pandas alone would read the whole column as text
+    days = ["3", "?", "5", "7", "?", "2", "4", "?", "6", "1"]
+    content = ("order,delivery_days\n" + "".join(f"{i},{v}\n" for i, v in enumerate(days))).encode()
+    loaded = load_file(content, "orders.csv")
+    assert str(loaded.df["delivery_days"].dtype) == "float64"
+    assert loaded.df["delivery_days"].isna().sum() == 3
+    assert loaded.df["delivery_days"].sum() == 28
+    assert loaded.placeholders_read_as_missing == {"delivery_days": {"?": 3}}
+    assert loaded.notes() == ["delivery_days: 3 placeholder value(s) read as missing ('?' x3); every other value is a number"]
+
+
+def test_each_placeholder_is_kept_as_written():
+    loaded = load_file(b"x\n1\nunknown\n 2 \n-\nUNKNOWN\n", "x.csv")
+    assert loaded.df["x"].isna().sum() == 3 and loaded.df["x"].sum() == 3
+    assert loaded.placeholders_read_as_missing == {"x": {"unknown": 1, "-": 1, "UNKNOWN": 1}}
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"x\n1\n?\n12 kg net\n", # real text: not a number column
+        b"x\n?\nunknown\n",      # only placeholders: nothing to keep as numbers
+        b"x\na\nb\n?\n",         # a text column with a "?" answer
+        b"x\nTrue\n?\n1\n",      # True is not a number here
+    ],
+    ids=["real_text", "only_placeholders", "text_column", "boolean_text"],
+)
+def test_columns_with_real_text_are_left_alone(content):
+    loaded = load_file(content, "x.csv")
+    assert loaded.placeholders_read_as_missing == {}
+    assert not str(loaded.df["x"].dtype).startswith("float")
+
+
+def test_excel_column_mixing_numbers_and_question_marks(tmp_path):
+    path = tmp_path / "mixed.xlsx"
+    pd.DataFrame({"rating": [4, "?", 5, 3.5, "?"]}).to_excel(path, index=False)
+    loaded = load_file(path.read_bytes(), "mixed.xlsx")
+    assert loaded.df["rating"].tolist()[0] == 4.0 and loaded.df["rating"].isna().sum() == 2
+    assert loaded.placeholders_read_as_missing == {"rating": {"?": 2}}
+
+
+# --- numbers written with units ---
+
+UNITS_CSV = (
+    "temperature_reading,trip,price,station\n"
+    "26C,54km,$98.06,EDM-01\n32F,76mi,$1204.50,EDM-02\n105F,12 km,unknown,EDM-01\n"
+    "113F,3.5mi,$5.00,EDM-02\n2C,10km,$7.25,EDM-01\n15C,8 km,$1.10,EDM-02\n"
+).encode()
+
+
+def test_one_unit_is_removed_and_noted():
+    loaded = load_file(UNITS_CSV, "trips.csv")
+    assert loaded.df["price"].tolist()[:2] == [98.06, 1204.5] and loaded.df["price"].isna().sum() == 1
+    assert "price: '$' removed from 5 values (one unit in the column)" in loaded.notes()
+
+
+def test_units_pint_reads_safely_are_converted_to_the_most_common():
+    loaded = load_file(UNITS_CSV, "trips.csv")
+    assert loaded.df["trip"].round(3).tolist() == [54.0, 122.31, 12.0, 5.633, 10.0, 8.0]
+    assert "trip: converted to km (2 from mi); units read by pint as km = kilometer, mi = mile" in loaded.notes()
+
+
+def test_the_user_can_choose_the_unit_to_keep():
+    loaded = load_file(UNITS_CSV, "trips.csv", unit_choices={"Trip": "mi"})
+    assert loaded.df["trip"].round(3).tolist() == [33.554, 76.0, 7.456, 3.5, 6.214, 4.971]
+
+
+def test_temperature_letters_wait_for_the_planner_then_python_converts():
+    loaded = load_file(UNITS_CSV, "trips.csv")
+    assert loaded.mixed_units == {"temperature_reading": {"C": 3, "F": 3}}
+    assert "temperature_reading: mixed units (C x3, F x3) not converted; kept as text" in loaded.notes()
+
+    # A wrong answer is rejected and nothing changes; a right one is checked by pint and converted by Python
+    assert loaded.resolve_units("temperature_reading", {"C": "degC", "F": "farad"}) == "'F' (farad) and 'C' (degree_Celsius) measure different things"
+    assert loaded.resolve_units("temperature_reading", {"C": "degC"}) == "the unit names must cover exactly ['C', 'F']"
+    assert loaded.resolve_units("temperature_reading", {"C": "degC", "F": "degF"}) is None
+    assert loaded.df["temperature_reading"].round(2).tolist() == [26.0, 0.0, 40.56, 45.0, 2.0, 15.0]
+    assert loaded.mixed_units == {}
+    assert "temperature_reading: converted to C (3 from F); units read by planner as C = degC, F = degF" in loaded.notes()
+
+
+def test_codes_stay_text():
+    loaded = load_file(UNITS_CSV, "trips.csv")
+    assert loaded.df["station"].tolist()[:2] == ["EDM-01", "EDM-02"]
+
+
+@pytest.mark.parametrize(
+    "choices, note",
+    [
+        ({"trip": "ft"}, "trip: unit setting ignored ('ft' is not one of its units (km x4, mi x2))"),
+        ({"region": "km"}, "region: unit setting ignored (no column with this name)"),
+        ({"station": "km"}, "station: unit setting ignored (the column is not numbers with units)"),
+    ],
+    ids=["unit_not_in_column", "no_such_column", "not_a_unit_column"],
+)
+def test_unusable_unit_choices_are_noted(choices, note):
+    assert note in load_file(UNITS_CSV, "trips.csv", unit_choices=choices).notes()
+
+
+def test_clean_files_report_no_conversion():
+    assert load_sample("survey_with_gaps.csv").placeholders_read_as_missing == {}  # its "?" are in a text column
 
 
 # --- rejected uploads ---
