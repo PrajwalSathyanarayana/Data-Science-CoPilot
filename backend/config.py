@@ -45,7 +45,8 @@ PAIR_CHECK_MAX_COLUMNS = 75
 
 # missing_value_analyzer
 MISSING_HIGHLIGHT_PCT = 1.0 # columns above this % missing get their own summary line; the rest are counted
-# Text values that often stand for "no data". Counted as possible placeholders, never changed.
+# Text values that often stand for "no data". In a column where every other value is a number, the loader
+# reads them as missing (so the column stays numeric); in text columns they are only counted, never changed.
 # (pandas already turns "", "NA", "N/A", "null", "None", "NaN" into real missing values when loading.)
 MISSING_PLACEHOLDERS = ["?", "-", "--", "---", ".", "unknown", "unk", "missing", "not available", "n.a.", "undefined", "tbd"]
 CO_MISSING_MIN_OVERLAP = 0.8 # a pair is reported when 80%+ of rows missing either column are missing both
