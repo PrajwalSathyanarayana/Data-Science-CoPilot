@@ -176,7 +176,7 @@ def test_status_code_is_kept_for_callers(error, status_code):
 
 def test_estimate_is_kept_next_to_the_real_count():
     result = call_llm("s" * 400, "u" * 800, agent="planner", client=FakeClient(make_response(input_tokens=480)))
-    assert result.estimated_input_tokens == 300  # 1,200 characters / 4
+    assert result.estimated_input_tokens == 223 + 445  # 400 / 1.8 and 800 / 1.8, each rounded up
     assert result.input_tokens == 480
 
 

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from backend.agents.planner import detect_interesting_columns
+from backend.agents.planner import SYSTEM_PROMPT, detect_interesting_columns
 from backend.agents.planner_context import (
     apply_flag_order,
     build_name_lookup,
@@ -13,11 +13,19 @@ from backend.agents.planner_context import (
     rank_flags,
     target_checks,
 )
-from backend.config import PLANNER_FLAGS_SHOWN, PROMPT_CELL_MAX_CHARS, PROMPT_COLUMN_NAME_MAX_CHARS
+from backend.config import (
+    PLANNER_FLAGS_SHOWN,
+    PLANNER_MAX_TOKENS,
+    PROMPT_CELL_MAX_CHARS,
+    PROMPT_COLUMN_NAME_MAX_CHARS,
+    SAFETY_MARGIN,
+)
 from backend.models import ColumnFlag, ToolResult
 from backend.tools.dataset_inspector import inspect_dataset
+from backend.utils.token_manager import estimate_tokens
 
-BUDGET = 2326  # the planner's real context budget: 3500 x 0.8 minus the system prompt
+# The planner's real context budget, as create_plan computes it
+BUDGET = int(PLANNER_MAX_TOKENS * (1 - SAFETY_MARGIN)) - estimate_tokens(SYSTEM_PROMPT)
 
 
 def wide_customer_file() -> pd.DataFrame:
@@ -141,7 +149,7 @@ def test_wide_file_puts_the_rare_class_first_and_groups_the_rest():
 
 
 def test_over_budget_drops_rows_first_then_grouped_flags():
-    ctx = context_for(wide_customer_file(), budget=1900)
+    ctx = context_for(wide_customer_file(), budget=4220)
     assert ctx.trimmed[0] == "rows"
     assert "Example rows" not in ctx.text
     # The target section and the numbered flags are never cut
@@ -149,9 +157,9 @@ def test_over_budget_drops_rows_first_then_grouped_flags():
 
 
 def test_tight_budget_trims_the_overview_from_the_bottom():
-    ctx = context_for(wide_customer_file(), budget=1300)
+    ctx = context_for(wide_customer_file(), budget=2890)
     assert ctx.trimmed == ["rows", "more_flags", "overview"]
-    assert ctx.tokens <= 1300
+    assert ctx.tokens <= 2890
     assert "Dataset overview:" in ctx.text
 
 

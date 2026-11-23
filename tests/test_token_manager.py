@@ -1,7 +1,7 @@
 """Tests for backend/utils/token_manager.py — token estimation and fitting tool summaries into a budget."""
 import pytest
 
-from backend.config import SAFETY_MARGIN
+from backend.config import CHARS_PER_TOKEN, SAFETY_MARGIN
 from backend.models import ToolResult
 from backend.utils.token_manager import estimate_tokens, fit_summaries_to_budget
 
@@ -30,8 +30,16 @@ def make_result(name: str, n_lines: int = 5, success: bool = True) -> ToolResult
     ],
     ids=["empty", "exact_multiple", "rounds_up", "long_text"],
 )
-def test_estimate_tokens(text, expected):
+def test_estimate_tokens(text, expected, monkeypatch):
+    # The rounding is tested on round numbers; the measured setting is checked below
+    monkeypatch.setattr("backend.utils.token_manager.CHARS_PER_TOKEN", 4)
     assert estimate_tokens(text) == expected
+
+
+def test_estimate_uses_the_measured_characters_per_token():
+    # 1.8 sits just below the worst measured case (1.89, number-heavy prompt; D-026), so it never under-counts
+    assert CHARS_PER_TOKEN == 1.8
+    assert estimate_tokens("a" * 180) == 100
 
 
 # --- fit_summaries_to_budget: normal behaviour ---
@@ -92,7 +100,8 @@ def test_overflowing_tool_is_trimmed_at_line_boundaries_and_rest_dropped():
         assert line == "" or line in original_lines
 
 
-def test_tool_is_dropped_when_only_its_title_would_fit():
+def test_tool_is_dropped_when_only_its_title_would_fit(monkeypatch):
+    monkeypatch.setattr("backend.utils.token_manager.CHARS_PER_TOKEN", 4)
     # Budget is 240 after the safety margin. The first tool costs 231 tokens and the
     # separator 1, leaving 8: enough for the next title (7) but not its first line (11).
     first = ToolResult(tool_name="dataset_inspector", success=True, payload={}, summary="x" * 900)

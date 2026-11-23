@@ -45,7 +45,7 @@ def test_last_item_may_use_the_room_kept_for_the_closing_line():
 
 
 def test_add_refuses_a_line_that_does_not_fit():
-    builder = SummaryBuilder(max_tokens=3)
+    builder = SummaryBuilder(max_tokens=5)
     assert builder.add("short") is True
     assert builder.add("this line is far too long to fit") is False
     assert builder.text() == "short"
