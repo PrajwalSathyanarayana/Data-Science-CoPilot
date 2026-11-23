@@ -26,13 +26,14 @@ AGENT_LLM_SETTINGS = {
 LLM_MAX_RETRIES = 3 # SDK retries rate limits, server errors and network errors with backoff
 LLM_TIMEOUT_SECONDS = 120.0 # per attempt
 
-# Input budgets: the most tokens of tool summaries token_manager may send to each agent.
-# Sized to fit the most each agent can receive today (tool summaries are capped at 1000 tokens each),
-# plus headroom. They also act as a fuse: a bug or a hostile file can't blow up the cost of a call.
-PLANNER_MAX_TOKENS = 3500 # whole planner input: system prompt + context (overview, target check, flags, units, notes, example rows)
-INSIGHT_GENERATOR_MAX_TOKENS = 10000 # up to 5 tool summaries + flags + plan
-CRITIC_AGENT_MAX_TOKENS = 11000 # insights + tool summaries
-HYPOTHESIS_MAX_TOKENS = 3000 # insights + plan + flags
+# Input budgets, in real tokens: the most each agent's input may hold before it is trimmed. They are ceilings
+# (typical prompts are far smaller and cost the same) and a fuse: a bug or a hostile file can't blow up the cost
+# of a call. Set to 4x the first budgets (D-026): those were sized with 4 characters per token, about 2x off the
+# measured count, so 4x restates them in real tokens with room to spare. call_llm warns if a real call goes over.
+PLANNER_MAX_TOKENS = 14000 # whole planner input: system prompt + context (overview, target check, flags, units, notes, example rows)
+INSIGHT_GENERATOR_MAX_TOKENS = 40000 # up to 5 tool summaries + flags + plan
+CRITIC_AGENT_MAX_TOKENS = 44000 # insights + tool summaries
+HYPOTHESIS_MAX_TOKENS = 12000 # insights + plan + flags
 # Each agent's budget, so call_llm can compare the real input count from the API against it after every call
 AGENT_INPUT_BUDGETS = {
     "planner": PLANNER_MAX_TOKENS,
@@ -42,7 +43,7 @@ AGENT_INPUT_BUDGETS = {
 }
 
 # Tool output
-TOOL_SUMMARY_MAX_TOKENS = 1000 # a tool's summary (the part sent to the LLM) must stay under this
+TOOL_SUMMARY_MAX_TOKENS = 3750 # a tool's summary (the part sent to the LLM) must stay under this; about 6,750 characters (D-026)
 INSPECTOR_SAMPLE_ROWS = 3 # example rows kept by dataset_inspector (fewer if the file is smaller)
 
 # Checks that compare columns in pairs (missing together, correlations). Pairs grow with the square of
@@ -100,10 +101,10 @@ CHART_MAX_TIME_POINTS = 100 # time charts use day, week, month, quarter or year,
 CHART_MAX_DATE_COLUMNS = 3 # most date columns given a time chart
 
 AGENT_STEPS_MAX = 10
-AGENT_MEMORY_MAX = 6000 # accumulated maximum tokens for agent's memory.
+AGENT_MEMORY_MAX = 24000 # accumulated maximum tokens for agent's memory (4x the first value, D-026)
 
 SAFETY_MARGIN = 0.20 # safety margin below each agent's input budget, since token counts are estimated
-CHARS_PER_TOKEN = 4 # rough rule of thumb for English text with Claude's tokenizer
+CHARS_PER_TOKEN = 1.8 # measured with count_tokens (D-026): 2.4-2.6 on text-heavy prompts, 1.89 on number-heavy ones; just below the worst case
 
 # Order in which tool summaries are kept when an agent's budget is tight (most important first).
 # Tools not listed here are kept last, in the order they ran.
