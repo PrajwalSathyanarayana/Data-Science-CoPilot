@@ -18,7 +18,15 @@ SERVER_FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 
 class LLMCallError(Exception):
-    """The call failed: API error after the SDK's retries, or an unusable response."""
+    """The call failed: API error after the SDK's retries, or an unusable response.
+
+    `status_code` is the HTTP status when the API answered with an error (401 = key rejected),
+    and None for network failures and unusable responses.
+    """
+
+    def __init__(self, message: str, status_code: Optional[int] = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class LLMRefusalError(LLMCallError):
@@ -74,7 +82,9 @@ def call_llm(
         raise LLMCallError(f"[{agent}] could not reach the Claude API: {exc}") from exc
     except anthropic.APIStatusError as exc:
         # Permanent errors (bad request, auth, unknown model) fail at once; transient ones were already retried
-        raise LLMCallError(f"[{agent}] Claude API returned {exc.status_code}: {exc.message}") from exc
+        raise LLMCallError(
+            f"[{agent}] Claude API returned {exc.status_code}: {exc.message}", status_code=exc.status_code
+        ) from exc
     latency_ms = round((time.perf_counter() - started) * 1000)
 
     # Check why it stopped BEFORE reading content: a refusal can have empty or partial content

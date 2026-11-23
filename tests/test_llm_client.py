@@ -155,6 +155,22 @@ def test_api_errors_become_llm_call_error_with_cause(error, message):
     assert raised.value.__cause__ is error  # original error kept for debugging
 
 
+@pytest.mark.parametrize(
+    "error, status_code",
+    [
+        (anthropic.AuthenticationError("invalid x-api-key", response=httpx2.Response(401, request=API_REQUEST), body=None), 401),
+        (anthropic.BadRequestError("bad model", response=httpx2.Response(400, request=API_REQUEST), body=None), 400),
+        (anthropic.APIConnectionError(request=API_REQUEST), None),
+    ],
+    ids=["key_rejected", "bad_request", "network"],
+)
+def test_status_code_is_kept_for_callers(error, status_code):
+    # Callers tell a rejected key (setup problem) from an outage by this code
+    with pytest.raises(LLMCallError) as raised:
+        call_llm("system", "question", agent="planner", client=FakeClient(error))
+    assert raised.value.status_code == status_code
+
+
 def test_unknown_agent_raises():
     with pytest.raises(ValueError, match="No LLM settings for agent 'summariser'"):
         call_llm("system", "question", agent="summariser", client=FakeClient(make_response()))
