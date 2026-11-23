@@ -1,11 +1,12 @@
 """Tests for backend/utils/llm_client.py — uses a fake client, so no real API calls and no cost."""
+import logging
 from types import SimpleNamespace
 
 import anthropic
 import httpx2
 import pytest
 
-from backend.config import AGENT_LLM_SETTINGS, ANALYSIS_MODEL, CRITIC_MODEL, LLM_MAX_RETRIES, LLM_TIMEOUT_SECONDS
+from backend.config import AGENT_INPUT_BUDGETS, AGENT_LLM_SETTINGS, ANALYSIS_MODEL, CRITIC_MODEL, LLM_MAX_RETRIES, LLM_TIMEOUT_SECONDS
 from backend.utils import llm_client
 from backend.utils.llm_client import LLMCallError, LLMRefusalError, call_llm
 
@@ -169,6 +170,37 @@ def test_status_code_is_kept_for_callers(error, status_code):
     with pytest.raises(LLMCallError) as raised:
         call_llm("system", "question", agent="planner", client=FakeClient(error))
     assert raised.value.status_code == status_code
+
+
+# --- estimate vs real input count ---
+
+def test_estimate_is_kept_next_to_the_real_count():
+    result = call_llm("s" * 400, "u" * 800, agent="planner", client=FakeClient(make_response(input_tokens=480)))
+    assert result.estimated_input_tokens == 300  # 1,200 characters / 4
+    assert result.input_tokens == 480
+
+
+def test_real_count_over_the_budget_is_warned(caplog):
+    over = AGENT_INPUT_BUDGETS["planner"] + 1
+    with caplog.at_level(logging.WARNING, logger="backend.utils.llm_client"):
+        call_llm("system", "question", agent="planner", client=FakeClient(make_response(input_tokens=over)))
+    assert f"used {over} input tokens, over its budget of {AGENT_INPUT_BUDGETS['planner']}" in caplog.text
+
+
+def test_real_count_within_the_budget_is_not_warned(caplog):
+    with caplog.at_level(logging.WARNING, logger="backend.utils.llm_client"):
+        call_llm("system", "question", agent="planner", client=FakeClient(make_response(input_tokens=1259)))
+    assert "over its budget" not in caplog.text
+
+
+def test_fallback_calls_are_not_judged_against_the_budget(caplog):
+    response = make_response(
+        input_tokens=AGENT_INPUT_BUDGETS["planner"] * 2,
+        iterations=[SimpleNamespace(type="message"), SimpleNamespace(type="fallback_message")],
+    )
+    with caplog.at_level(logging.WARNING, logger="backend.utils.llm_client"):
+        call_llm("system", "question", agent="planner", client=FakeClient(response))
+    assert "over its budget" not in caplog.text
 
 
 def test_unknown_agent_raises():

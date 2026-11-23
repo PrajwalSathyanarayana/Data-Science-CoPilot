@@ -13,3 +13,5 @@ class LLMResponse(BaseModel):
     output_tokens: int    # includes thinking tokens, which are billed as output
     latency_ms: int
     fallback_used: bool = False
+    # Our characters-per-token estimate of the input, kept next to the real count to measure its accuracy
+    estimated_input_tokens: int = 0

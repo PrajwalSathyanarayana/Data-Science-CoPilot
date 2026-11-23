@@ -6,8 +6,9 @@ from typing import Any, Optional
 
 import anthropic
 
-from ..config import AGENT_LLM_SETTINGS, LLM_MAX_RETRIES, LLM_TIMEOUT_SECONDS
+from ..config import AGENT_INPUT_BUDGETS, AGENT_LLM_SETTINGS, LLM_MAX_RETRIES, LLM_TIMEOUT_SECONDS
 from ..models import LLMResponse
+from .token_manager import estimate_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +113,27 @@ def call_llm(
         output_tokens=response.usage.output_tokens,
         latency_ms=latency_ms,
         fallback_used=fallback_used,
+        estimated_input_tokens=estimate_tokens(system_prompt) + estimate_tokens(user_message),
     )
     logger.info(
-        "LLM call agent=%s model=%s in=%d out=%d latency_ms=%d fallback=%s",
-        agent, result.model, result.input_tokens, result.output_tokens, latency_ms, fallback_used,
+        "LLM call agent=%s model=%s in=%d (estimated %d) out=%d latency_ms=%d fallback=%s",
+        agent, result.model, result.input_tokens, result.estimated_input_tokens, result.output_tokens,
+        latency_ms, fallback_used,
     )
+    _check_input_budget(result)
     return result
+
+
+def _check_input_budget(result: LLMResponse) -> None:
+    """Warn when the real input count went over the agent's budget: the estimate let too much through.
+
+    Budgets are enforced before the call with an estimate, so this is the check that the estimate holds.
+    A fallback run can add the fallback model's input to the count, so those calls are not judged.
+    """
+    budget = AGENT_INPUT_BUDGETS.get(result.agent)
+    if budget is None or result.fallback_used or result.input_tokens <= budget:
+        return
+    logger.warning(
+        "LLM call agent=%s used %d input tokens, over its budget of %d (estimated %d before the call)",
+        result.agent, result.input_tokens, budget, result.estimated_input_tokens,
+    )

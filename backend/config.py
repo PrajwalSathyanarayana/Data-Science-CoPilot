@@ -33,6 +33,13 @@ PLANNER_MAX_TOKENS = 3500 # whole planner input: system prompt + context (overvi
 INSIGHT_GENERATOR_MAX_TOKENS = 10000 # up to 5 tool summaries + flags + plan
 CRITIC_AGENT_MAX_TOKENS = 11000 # insights + tool summaries
 HYPOTHESIS_MAX_TOKENS = 3000 # insights + plan + flags
+# Each agent's budget, so call_llm can compare the real input count from the API against it after every call
+AGENT_INPUT_BUDGETS = {
+    "planner": PLANNER_MAX_TOKENS,
+    "insight_generator": INSIGHT_GENERATOR_MAX_TOKENS,
+    "critic": CRITIC_AGENT_MAX_TOKENS,
+    "hypothesis": HYPOTHESIS_MAX_TOKENS,
+}
 
 # Tool output
 TOOL_SUMMARY_MAX_TOKENS = 1000 # a tool's summary (the part sent to the LLM) must stay under this
