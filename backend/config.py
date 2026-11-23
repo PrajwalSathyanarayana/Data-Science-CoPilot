@@ -29,7 +29,7 @@ LLM_TIMEOUT_SECONDS = 120.0 # per attempt
 # Input budgets: the most tokens of tool summaries token_manager may send to each agent.
 # Sized to fit the most each agent can receive today (tool summaries are capped at 1000 tokens each),
 # plus headroom. They also act as a fuse: a bug or a hostile file can't blow up the cost of a call.
-PLANNER_MAX_TOKENS = 3500 # inspector summary + column flags
+PLANNER_MAX_TOKENS = 3500 # whole planner input: system prompt + context (overview, target check, flags, units, notes, example rows)
 INSIGHT_GENERATOR_MAX_TOKENS = 10000 # up to 5 tool summaries + flags + plan
 CRITIC_AGENT_MAX_TOKENS = 11000 # insights + tool summaries
 HYPOTHESIS_MAX_TOKENS = 3000 # insights + plan + flags
@@ -109,9 +109,9 @@ TOOL_PRIORITY = [
     "notebook_generator",
 ]
 
-# Tools the planner is allowed to schedule. dataset_inspector always runs before the planner;
-# visualization_analyzer runs after the planner's tools (its charts follow their findings);
-# notebook_generator runs after the agents. None of those three is the planner's choice.
+# The analysis tools the orchestrator always runs, all 3 every time (D-024). dataset_inspector runs before
+# the planner; visualization_analyzer runs after these (its charts follow their findings); notebook_generator
+# runs after the agents. Tool choice by the planner returns in Phase 3.
 PLANNER_TOOLS = [
     "missing_value_analyzer",
     "outlier_analyzer",
@@ -124,6 +124,17 @@ DATE_PARSE_MIN_RATIO = 0.9 # share of sampled values that must parse for the col
 SKEW_THRESHOLD = 1.0 # numeric column is flagged as long-tailed when abs(skewness) is above this (1.0 = "highly skewed")
 SKEW_MIN_VALUES = 20 # skewness is unreliable on very few values, so smaller columns are not checked
 IMBALANCE_THRESHOLD = 0.15 # binary column is flagged when its smaller class is below this share of rows
+
+# Planner (create_plan). Problem type: Python's rule settles the clear cases; the LLM only picks for "unclear" ones
+PROBLEM_UNCLEAR_MAX_VALUES = 10 # whole-number columns with this many different values or fewer could be classes or amounts
+TARGET_MAX_CLASSES = 20 # text columns with more different values than this can't be a target (IDs, free text)
+PLANNER_FLAGS_SHOWN = 15 # flags shown in full and numbered for ranking; the rest are grouped on one line per kind
+PLANNER_FOCUS_MAX = 8 # most focus columns kept (the LLM lists the most important first; extras are cut, no retry)
+PLANNER_RATIONALE_MAX_CHARS = 600 # longer rationales are cut (it is shown in the report)
+PLANNER_REASON_MAX_CHARS = 200 # the one-line reason for an unclear problem type
+PLANNER_RETRY_ERRORS_SHOWN = 5 # most validation errors listed in the correction prompt
+PROMPT_CELL_MAX_CHARS = 30 # example-row cells are cut to this length in prompts (long text, injection attempts)
+PROMPT_COLUMN_NAME_MAX_CHARS = 60 # column names are cut to this length where the planner context lists them
 
 
 ALLOWED_FILE_TYPE = ['csv', 'xlsx', 'xls']
