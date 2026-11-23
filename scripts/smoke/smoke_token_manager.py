@@ -34,8 +34,8 @@ def main() -> None:
     runner.section("Large budget (max_tokens=5000)")
     large = fit_summaries_to_budget(results, max_tokens=5000)
     runner.check("budget after 20% safety margin", 4000, large.budget)
-    runner.check("tokens before compression", 908, large.tokens_before)
-    runner.check("tokens after compression", 908, large.tokens_after)
+    runner.check("tokens before compression", 2017, large.tokens_before)
+    runner.check("tokens after compression", 2017, large.tokens_after)
     runner.check("reduction ratio", 0.0, large.reduction_ratio)
     runner.check(
         "included tools, in priority order",
@@ -47,12 +47,13 @@ def main() -> None:
     runner.check("failed tool shows a note", True, "Tool failed: boom" in large.text)
 
     # Tight budget: keep the most important tools, trim one, drop the rest
-    runner.section("Tight budget (max_tokens=300)")
-    tight = fit_summaries_to_budget(results, max_tokens=300)
-    runner.check("budget after 20% safety margin", 240, tight.budget)
-    runner.check("tokens after compression", 233, tight.tokens_after)
+    # (667 = the original 300 x 4 / 1.8, the same squeeze in measured characters per token)
+    runner.section("Tight budget (max_tokens=667)")
+    tight = fit_summaries_to_budget(results, max_tokens=667)
+    runner.check("budget after 20% safety margin", 533, tight.budget)
+    runner.check("tokens after compression", 517, tight.tokens_after)
     runner.check("stays within budget", True, tight.tokens_after <= tight.budget)
-    runner.check("reduction ratio", 0.7434, tight.reduction_ratio)
+    runner.check("reduction ratio", 0.7437, tight.reduction_ratio)
     runner.check("included tools", ["dataset_inspector"], tight.included_tools)
     runner.check("truncated tools", ["missing_value_analyzer"], tight.truncated_tools)
     runner.check("dropped tools", ["outlier_analyzer", "correlation_analyzer"], tight.dropped_tools)
