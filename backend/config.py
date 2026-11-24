@@ -100,8 +100,11 @@ CHART_SCATTER_SAMPLE = 2000 # scatter plots of bigger files show a random sample
 CHART_MAX_TIME_POINTS = 100 # time charts use day, week, month, quarter or year, whichever gives at most this many points
 CHART_MAX_DATE_COLUMNS = 3 # most date columns given a time chart
 
-AGENT_STEPS_MAX = 10
-AGENT_MEMORY_MAX = 24000 # accumulated maximum tokens for agent's memory (4x the first value, D-026)
+AGENT_STEPS_MAX = 10 # most tool runs per report; the orchestrator finishes early instead of starting more
+AGENT_MEMORY_MAX = 24000 # most tokens of tool summaries collected per report; past it, no new tools start
+# How long to wait for one tool, in seconds. About 10x the slowest tool we measured (correlations took 6.24 s
+# on 75,000 rows x 61 columns). A slower tool is marked as failed and the report goes on without it.
+TOOL_TIMEOUT_SECONDS = 60.0
 
 SAFETY_MARGIN = 0.20 # safety margin below each agent's input budget, since token counts are estimated
 CHARS_PER_TOKEN = 1.8 # measured with count_tokens (D-026): 2.4-2.6 on text-heavy prompts, 1.89 on number-heavy ones; just below the worst case
