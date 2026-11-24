@@ -18,7 +18,7 @@ def estimate_tokens(text: str) -> int:
     return math.ceil(len(text) / CHARS_PER_TOKEN)
 
 
-def _sort_by_priority(tool_results: List[ToolResult]) -> List[ToolResult]:
+def sort_by_priority(tool_results: List[ToolResult]) -> List[ToolResult]:
     """Most important tools first. Unknown tools go last, keeping the order they ran in."""
     rank = {name: i for i, name in enumerate(TOOL_PRIORITY)}
     return sorted(tool_results, key=lambda r: rank.get(r.tool_name, len(rank)))
@@ -64,7 +64,7 @@ def fit_summaries_to_budget(tool_results: List[ToolResult], max_tokens: int) -> 
     budget = int(max_tokens * (1 - SAFETY_MARGIN))
     separator_cost = estimate_tokens(SECTION_SEPARATOR)
 
-    ordered = _sort_by_priority(tool_results)
+    ordered = sort_by_priority(tool_results)
     all_sections = [_format_section(r) for r in ordered]
     tokens_before = estimate_tokens(SECTION_SEPARATOR.join(all_sections))
 
