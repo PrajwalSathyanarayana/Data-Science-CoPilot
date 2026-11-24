@@ -22,7 +22,7 @@ from backend.utils.token_manager import estimate_tokens
 from tests.llm_fakes import ScriptedClient, make_response
 
 SAMPLES = ["weather_ddmm.csv", "hospital.xlsx", "survey_with_gaps.csv", "shop_orders.csv"]
-LIVE_WEATHER_INPUT_TOKENS = 1259  # usage.input_tokens from the first real planner call (D-025)
+LIVE_WEATHER_INPUT_TOKENS = 1259  # usage.input_tokens from the first real planner call
 
 
 def wide_file() -> LoadedFile:

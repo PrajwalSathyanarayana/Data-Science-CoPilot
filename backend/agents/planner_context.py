@@ -58,7 +58,7 @@ def build_name_lookup(columns: Sequence[str]) -> Tuple[Dict[str, str], Dict[str,
 
 
 # ---------------------------------------------------------------------------
-# Problem type: Python's rule settles the clear cases (D-024 decision 1)
+# Problem type: Python's rule settles the clear cases; the LLM only picks for unclear ones
 # ---------------------------------------------------------------------------
 
 def check_target(series: pd.Series) -> TargetCheck:

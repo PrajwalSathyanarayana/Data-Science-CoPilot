@@ -436,7 +436,7 @@ def _plan_from_answer(
 def _fallback_plan(
     reason: str, ranked: Sequence[ColumnFlag], checks: Mapping[str, TargetCheck], target_column: Optional[str]
 ) -> AnalysisPlan:
-    """A plan made by Python alone, so a failed planner never stops the report (D-024 decision 5)."""
+    """A plan made by Python alone, so a failed planner never stops the report."""
     logger.warning("Planner fallback: %s", reason)
     problem_type, type_source, type_reason = _problem_type(target_column, checks, None)
     focus = list(dict.fromkeys(flag.column for flag in ranked))[:PLANNER_FOCUS_MAX]

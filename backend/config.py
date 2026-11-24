@@ -28,8 +28,8 @@ LLM_TIMEOUT_SECONDS = 120.0 # per attempt
 
 # Input budgets, in real tokens: the most each agent's input may hold before it is trimmed. They are ceilings
 # (typical prompts are far smaller and cost the same) and a fuse: a bug or a hostile file can't blow up the cost
-# of a call. Set to 4x the first budgets (D-026): those were sized with 4 characters per token, about 2x off the
-# measured count, so 4x restates them in real tokens with room to spare. call_llm warns if a real call goes over.
+# of a call. Set to 4x the first budgets: those assumed 4 characters per token, about 2x off the real count,
+# so 4x restates them in real tokens with room to spare. call_llm warns if a real call goes over.
 PLANNER_MAX_TOKENS = 14000 # whole planner input: system prompt + context (overview, target check, flags, units, notes, example rows)
 INSIGHT_GENERATOR_MAX_TOKENS = 40000 # up to 5 tool summaries + flags + plan
 CRITIC_AGENT_MAX_TOKENS = 44000 # insights + tool summaries
@@ -43,7 +43,7 @@ AGENT_INPUT_BUDGETS = {
 }
 
 # Tool output
-TOOL_SUMMARY_MAX_TOKENS = 3750 # a tool's summary (the part sent to the LLM) must stay under this; about 6,750 characters (D-026)
+TOOL_SUMMARY_MAX_TOKENS = 3750 # a tool's summary (the part sent to the LLM) must stay under this; about 6,750 characters
 INSPECTOR_SAMPLE_ROWS = 3 # example rows kept by dataset_inspector (fewer if the file is smaller)
 
 # Checks that compare columns in pairs (missing together, correlations). Pairs grow with the square of
@@ -107,7 +107,7 @@ AGENT_MEMORY_MAX = 24000 # most tokens of tool summaries collected per report; p
 TOOL_TIMEOUT_SECONDS = 60.0
 
 SAFETY_MARGIN = 0.20 # safety margin below each agent's input budget, since token counts are estimated
-CHARS_PER_TOKEN = 1.8 # measured with count_tokens (D-026): 2.4-2.6 on text-heavy prompts, 1.89 on number-heavy ones; just below the worst case
+CHARS_PER_TOKEN = 1.8 # measured with count_tokens: 2.4-2.6 on text-heavy prompts, 1.89 on number-heavy ones; just below the worst case
 
 # Order in which tool summaries are kept when an agent's budget is tight (most important first).
 # Tools not listed here are kept last, in the order they ran.
@@ -120,7 +120,7 @@ TOOL_PRIORITY = [
     "notebook_generator",
 ]
 
-# The analysis tools the orchestrator always runs, all 3 every time (D-024). dataset_inspector runs before
+# The analysis tools the orchestrator always runs, all 3 every time. dataset_inspector runs before
 # the planner; visualization_analyzer runs after these (its charts follow their findings); notebook_generator
 # runs after the agents. Tool choice by the planner returns in Phase 3.
 PLANNER_TOOLS = [

@@ -37,7 +37,7 @@ def test_estimate_tokens(text, expected, monkeypatch):
 
 
 def test_estimate_uses_the_measured_characters_per_token():
-    # 1.8 sits just below the worst measured case (1.89, number-heavy prompt; D-026), so it never under-counts
+    # 1.8 sits just below the worst measured case (1.89, on a number-heavy prompt), so it never under-counts
     assert CHARS_PER_TOKEN == 1.8
     assert estimate_tokens("a" * 180) == 100
 

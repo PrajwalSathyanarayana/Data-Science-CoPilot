@@ -174,7 +174,7 @@ class PlannerAnswer(BaseModel):
 class AnalysisPlan(BaseModel):
     """The final plan, built by Python from the LLM's checked answer (or without it, as a fallback).
 
-    Saved in the report. All 3 analysis tools always run (D-024), so the plan holds no tool steps.
+    Saved in the report. All 3 analysis tools always run, so the plan holds no tool steps.
     """
 
     plan_source: PlanSource
