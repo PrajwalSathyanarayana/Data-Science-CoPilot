@@ -4,6 +4,7 @@ from .analysis_plan import AnalysisPlan, PlannerAnswer, PlanResult, ProblemType,
 from .column_flag import ColumnFlag, FlagKind
 from .llm_response import LLMResponse
 from .analysis_run import AnalysisRun
+from .analyze_request import AnalyzeConfig, JobRecord, JobStatus
 
 __all__ = [
     "ToolResult",
@@ -17,4 +18,7 @@ __all__ = [
     "FlagKind",
     "LLMResponse",
     "AnalysisRun",
+    "AnalyzeConfig",
+    "JobRecord",
+    "JobStatus",
 ]

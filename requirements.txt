@@ -19,3 +19,4 @@ pint==0.26.1
 openpyxl==3.1.5
 xlrd==2.0.2
 python-dotenv
+pyarrow  # stores the cleaned upload compressed (Parquet)

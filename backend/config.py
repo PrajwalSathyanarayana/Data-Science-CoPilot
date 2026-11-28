@@ -150,6 +150,22 @@ PROMPT_COLUMN_NAME_MAX_CHARS = 60 # column names are cut to this length where th
 
 ALLOWED_FILE_TYPE = ['csv', 'xlsx', 'xls']
 
+# POST /api/analyze and the background jobs
+ANALYSIS_WORKERS = 2 # analyses run at the same time; more would need more memory and spend the API budget faster
+ANALYSIS_QUEUE_MAX = 10 # most analyses waiting or running; past this, new uploads are asked to try again shortly
+UPLOAD_CHUNK_BYTES = 1024 * 1024 # uploads are read 1 MB at a time, stopping as soon as they pass MAX_FILE_SIZE
+UPLOAD_FORM_ALLOWANCE_BYTES = 64 * 1024 # room for the config field and form headers on top of the file itself
+DATASET_NAME_MAX_CHARS = 200 # longer upload file names are cut when shown in reports
+
+# Download links carry a signature only the server can make (HMAC-SHA256 with this secret) and stop working
+# after DOWNLOAD_LINK_SECONDS. Make a key with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+DOWNLOAD_SIGNING_KEY = os.getenv("DOWNLOAD_SIGNING_KEY", default="")
+if not DOWNLOAD_SIGNING_KEY:
+    raise ValueError("DOWNLOAD_SIGNING_KEY environment variable is not set. Please set it in the .env file or as an environment variable.")
+DOWNLOAD_LINK_SECONDS = 3600
+# The only files a report can offer for download. The uploaded data is never offered back
+REPORT_FILES = ["analysis.json", "notebook.ipynb", "report.md", "report.pdf"]
+
 # File loading. Every row is always kept: all statistics are computed on the full data.
 CSV_SNIFF_BYTES = 65536 # how much of a CSV is inspected to detect its separator (, ; tab |)
 ENCODING_SAMPLE_BYTES = 100000 # how much of a non-UTF-8 file is scanned to guess its encoding
