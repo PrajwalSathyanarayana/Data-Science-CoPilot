@@ -299,8 +299,9 @@ def generate_notebook(
     report_id: str,
     tool_payloads: Optional[Mapping[str, Mapping[str, Any]]] = None,
     insights: Optional[Sequence[str]] = None,
+    output_dir: Optional[str] = None,
 ) -> ToolResult:
-    """Write reports/<report_id>/notebook.ipynb and return what it contains.
+    """Write reports/<report_id>/notebook.ipynb (or into `output_dir`, if given) and return what it contains.
 
     The notebook reads the file with the settings DS Copilot detected, then re-checks each finding
     with a few lines of pandas whose printed numbers match the report. Text from the upload or the
@@ -328,9 +329,9 @@ def generate_notebook(
         notebook.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
         nbformat.validate(notebook)
 
-        output_dir = Path(REPORTS_DIR) / report_id
-        output_dir.mkdir(parents=True, exist_ok=True)
-        nbformat.write(notebook, str(output_dir / NOTEBOOK_FILE))  # nbformat always writes UTF-8
+        folder = Path(output_dir) if output_dir else Path(REPORTS_DIR) / report_id
+        folder.mkdir(parents=True, exist_ok=True)
+        nbformat.write(notebook, str(folder / NOTEBOOK_FILE))  # nbformat always writes UTF-8
 
         findings = len(nb.checks) - 1  # the first check is the file loading
         payload = {"file": NOTEBOOK_FILE, "cells": len(nb.cells), "findings_checked": findings, "checks": nb.checks}

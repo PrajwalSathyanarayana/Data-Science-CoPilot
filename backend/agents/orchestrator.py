@@ -145,11 +145,13 @@ def run_analysis(
     target_column: Optional[str] = None,
     date_dayfirst: Optional[bool] = None,
     client: Optional[anthropic.Anthropic] = None,
+    progress: Optional[Callable[[str], None]] = None,
 ) -> AnalysisRun:
     """Take one uploaded file through every step and return everything it produced.
 
     If the planner fails, a simpler plan made by Python is used instead. If a tool fails, it is kept
-    as a failed result and the other steps still run.
+    as a failed result and the other steps still run. `progress`, if given, is called with each step's
+    name in plain words, for the progress display.
 
     Raises:
         ValueError: `target_column` is not a column of the dataset.
@@ -162,8 +164,10 @@ def run_analysis(
     limits = _Limits()
     timings: Dict[str, int] = {}
     results: Dict[str, ToolResult] = {}
+    report = progress or (lambda step: None)
 
     # 1. Overview of the data
+    report("looking at the data")
     if limits.can_start(1, "the overview"):
         (results[INSPECTOR],), tool_times = _run_tools({INSPECTOR: lambda: inspect_dataset(df)})
         timings.update(tool_times)
@@ -174,6 +178,7 @@ def run_analysis(
     flags = detect_interesting_columns(df, target_column, date_dayfirst)
     timings["detection"] = _elapsed_ms(start)
 
+    report("planning the analysis")
     start = time.perf_counter()
     plan_result = create_plan(loaded, results.get(INSPECTOR), flags, target_column=target_column, client=client)
     timings["planner"] = _elapsed_ms(start)
@@ -194,6 +199,7 @@ def run_analysis(
 
     # 5. The 3 analysis tools at the same time, using the plan's target and focus columns
     if limits.can_start(len(PLANNER_TOOLS), "the analysis tools and the charts"):
+        report("running the analysis tools")
         target, focus = plan.target_column, list(plan.focus_columns)
         jobs = {name: (lambda tool=ANALYSIS_TOOLS[name]: tool(df, target, focus)) for name in PLANNER_TOOLS}
         start = time.perf_counter()
@@ -205,6 +211,7 @@ def run_analysis(
 
     # 6. Charts, based on what the successful tools found
     if limits.can_start(1, "the charts"):
+        report("drawing the charts")
         payloads = {name: result.payload for name, result in results.items() if result.success}
         (results[CHARTS],), tool_times = _run_tools({
             CHARTS: lambda: analyze_visualizations(
